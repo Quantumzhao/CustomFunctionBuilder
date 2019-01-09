@@ -12,8 +12,8 @@ namespace TestCustomizedFunction
 		static void Main(string[] args)
 		{
 			var test = new CustomizedMethodWrapper2();
-			test.AddParameter("num1",1);
-			test.AddParameter("num2",2);
+			test.AddVariable("num1",1);
+			test.AddVariable("num2",2);
 			test.AddFunction
 			(
 				"add", 
@@ -24,6 +24,15 @@ namespace TestCustomizedFunction
 						return (int)test["num1"] + (int)test["num2"];
 					}
 				)
+			);
+			test.AddVariable("num3", 3);
+			test.AddFunction
+			(
+				"multiply",
+				(Dictionary<string, object> p) =>
+				{
+					return (int)test["add"] * (int)test["num3"];
+				}
 			);
 			Console.WriteLine((int)test.Invoke());
 
@@ -37,7 +46,7 @@ namespace TestCustomizedFunction
 		private Dictionary<string, Func<Dictionary<string, object>, object>> functions =
 			new Dictionary<string, Func<Dictionary<string, object>, object>>();
 
-		public void AddParameter(string name, object data)
+		public void AddVariable(string name, object data)
 		{
 			tempVariables.Add(name, data);
 		}
@@ -51,9 +60,9 @@ namespace TestCustomizedFunction
 		{
 			KeyValuePair<string, object> tempResult = new KeyValuePair<string, object>();
 
-			foreach (var item in functions)
+			foreach (var function in functions)
 			{
-				tempResult = new KeyValuePair<string, object>(item.Key, item.Value.Invoke(tempVariables));
+				tempResult = new KeyValuePair<string, object>(function.Key, function.Value.Invoke(tempVariables));
 
 				if (tempResult.Value != null)
 				{
@@ -64,8 +73,7 @@ namespace TestCustomizedFunction
 		}
 
 		public T GetTempVariable<T>(string name) => (T)tempVariables[name];
-		public object GetTempVariable(string name) => tempVariables[name];
-		public object this[string name] => GetTempVariable(name);
+		public object this[string name] => tempVariables[name];
 
 		public IEnumerable<string> ShowMethodsList()
 		{

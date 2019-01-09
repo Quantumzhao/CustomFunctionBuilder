@@ -12,15 +12,16 @@ namespace TestCustomizedFunction
 		static void Main(string[] args)
 		{
 			var test = new CustomizedMethodWrapper2();
-			test.AddParameter(1);
-			test.AddParameter(2);
-			test.AddMethod
+			test.AddParameter("num1",1);
+			test.AddParameter("num2",2);
+			test.AddFunction
 			(
-				new Func<List<object>, object>
+				"add", 
+				new Func<Dictionary<string, object>, object>
 				(
-					(List<object> p) => 
+					(Dictionary<string, object> p) =>
 					{
-						return (int)p[0] + (int)p[1];
+						return (int)test["num1"] + (int)test["num2"];
 					}
 				)
 			);
@@ -32,81 +33,45 @@ namespace TestCustomizedFunction
 
 	class CustomizedMethodWrapper2
 	{
-		private List<object> paramsList = new List<object>();
-		private List<Func<List<object>, object>> methods = new List<Func<List<object>, object>>();
+		private Dictionary<string, object> tempVariables = new Dictionary<string, object>();
+		private Dictionary<string, Func<Dictionary<string, object>, object>> functions =
+			new Dictionary<string, Func<Dictionary<string, object>, object>>();
 
-		public void AddParameter(object parameter)
+		public void AddParameter(string name, object data)
 		{
-			paramsList.Add(parameter);
+			tempVariables.Add(name, data);
 		}
 
-		public void AddMethod(Func<List<object>, object> method)
+		public void AddFunction(string name, Func<Dictionary<string, object>, object> method)
 		{
-			methods.Add(method);
+			functions.Add(name, method);
 		}
 
 		public object Invoke()
 		{
-			object tempResult;
+			KeyValuePair<string, object> tempResult = new KeyValuePair<string, object>();
 
-			tempResult = methods[0].Invoke(paramsList);
-
-			for (int i = 1; i < methods.Count; i++)
+			foreach (var item in functions)
 			{
-				tempResult = methods[i].Invoke(new List<object>() {tempResult});
+				tempResult = new KeyValuePair<string, object>(item.Key, item.Value.Invoke(tempVariables));
+
+				if (tempResult.Value != null)
+				{
+					tempVariables.Add(tempResult.Key, tempResult.Value);
+				}
 			}
-
-			return tempResult;
+			return tempResult.Value;
 		}
-	}
 
-	class CustomizedMethodWrapper
-	{
-		List<TypedObject> ParamsList = new List<TypedObject>();
-		TypedObject returnValue;
-		List<Func<List<TypedObject>>> functionList = new List<Func<List<TypedObject>>>();
-		List<Action<List<TypedObject>>> subProcedureList = new List<Action<List<TypedObject>>>();
+		public T GetTempVariable<T>(string name) => (T)tempVariables[name];
+		public object GetTempVariable(string name) => tempVariables[name];
+		public object this[string name] => GetTempVariable(name);
 
-		public CustomizedMethodWrapper(Type returnType)
+		public IEnumerable<string> ShowMethodsList()
 		{
-			if (returnType.GetType() == typeof(void))
+			foreach (KeyValuePair<string, Func<Dictionary<string, object>, object>> function in functions)
 			{
-				object a = new object();
-				Convert.ChangeType(a, returnType);
-			}
-
-			TypedObject returnValue = new TypedObject(returnType, null);
-		}
-
-		public void Invoke()
-		{
-
-		}
-
-		public void AddParameter(Type objectType, object objectData)
-		{
-			ParamsList.Add(new TypedObject(objectType, objectData));
-		}
-
-		public void AddFunction()
-		{
-
-		}
-
-		public void AddSubProcedure()
-		{
-
-		}
-
-		private class TypedObject
-		{
-			public Type ObjectType { get; private set; }
-			public object ObjectData { get; private set; }
-
-			public TypedObject(Type objectType, object objectData)
-			{
-				ObjectType = objectType;
-				ObjectData = objectData;
+				yield return function.Key;
 			}
 		}
 	}

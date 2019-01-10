@@ -30,7 +30,7 @@ namespace TestCustomizedFunction
 			{
 				Console.WriteLine(item);
 			}
-			//Console.WriteLine((int)test.Invoke());
+			Console.WriteLine((int)test.Invoke());
 
 			Console.ReadKey();
 		}
@@ -112,7 +112,12 @@ namespace TestCustomizedFunction
 		/// </summary>
 		/// <param name="name">The name of the <c>tempVariable</c>, which is used to find it</param>
 		/// <returns>The requested variable</returns>
-		public object this[string name] => tempVariables[name];
+		public object this[string name]
+		{
+			get => tempVariables[name];
+			set => tempVariables[name] = value;
+			
+		}
 
 		/// <summary>
 		///		Show the invocation sequence

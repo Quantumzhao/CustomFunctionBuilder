@@ -38,9 +38,26 @@ namespace TestCustomizedFunction
 
 	class CustomizedFunctionWrapper
 	{
-		private Dictionary<string, object> tempVariables = new Dictionary<string, object>();
+		private Dictionary<string, object> tempVariables =
+			new Dictionary<string, object>();
 		private Dictionary<string, Func<object>> functions =
 			new Dictionary<string, Func<object>>();
+		private Dictionary<string, CustomizedFunctionWrapper> funcBlocks =
+			new Dictionary<string, CustomizedFunctionWrapper>();
+		private Dictionary<string, object> executionSequence = 
+			new Dictionary<string, object>();
+
+		public CustomizedFunctionWrapper() { }
+		public CustomizedFunctionWrapper(
+			Dictionary<string, object> parameters, 
+			KeyValuePair<string, Func<object>> function = new KeyValuePair<string, Func<object>>())
+		{
+			AddVariable(parameters);
+			if (function.Value != null)
+			{
+				AddFunction(function.Key, function.Value);
+			}
+		}
 
 		/// <summary>
 		///		Add one local variable to the wrapped function
@@ -73,7 +90,21 @@ namespace TestCustomizedFunction
 		/// </param>
 		/// <param name="method"></param>
 		public void AddFunction(string name, Func<object> method)
-			=> functions.Add(name, method);
+		{
+			functions.Add(name, method);
+			executionSequence.Add(name, functions[name]);
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="name"></param>
+		/// <param name="funcBlock"></param>
+		public void AddFunction(string name, CustomizedFunctionWrapper funcBlock)
+		{
+			funcBlocks.Add(name, funcBlock);
+			executionSequence.Add(name, funcBlocks[name]);
+		}
 
 		/// <summary>
 		///		To invoke the wrapped function
@@ -88,8 +119,22 @@ namespace TestCustomizedFunction
 
 			foreach (KeyValuePair<string, Func<object>> function in functions)
 			{
+				//tempResult = new KeyValuePair<string, object>
+				//	(function.Key, function.Value.Invoke());
+
 				tempResult = new KeyValuePair<string, object>
-					(function.Key, function.Value.Invoke());
+				(
+					function.Key, 
+					function
+						.Value
+						.GetType()
+						.GetMethod("Invoke")
+						.Invoke
+						(
+							function.Value,
+							new object[] { }
+						)
+				);
 
 				if (tempResult.Value != null)
 				{
@@ -116,7 +161,6 @@ namespace TestCustomizedFunction
 		{
 			get => tempVariables[name];
 			set => tempVariables[name] = value;
-			
 		}
 
 		/// <summary>
@@ -125,7 +169,7 @@ namespace TestCustomizedFunction
 		/// <returns>A list of the names of functions ordered by their invocation</returns>
 		public IEnumerable<string> ShowInvocationOrder()
 		{
-			foreach (KeyValuePair<string, Func<object>> function in functions)
+			foreach (KeyValuePair<string, object> function in executionSequence)
 				yield return function.Key;
 		}
 	}

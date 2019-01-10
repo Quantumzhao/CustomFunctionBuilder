@@ -17,13 +17,13 @@ namespace TestCustomizedFunction
 			test.AddFunction
 			(
 				"add", 
-				(Dictionary<string, object> p) => (int)test["num1"] + (int)test["num2"]
+				() => (int)test["num1"] + (int)test["num2"]
 			);
 			test.AddVariable("num3", 3);
 			test.AddFunction
 			(
 				"multiply",
-				(Dictionary<string, object> p) => (int)test["add"] * (int)test["num3"]
+				() => (int)test["add"] * (int)test["num3"]
 			);
 
 			foreach (var item in test.ShowInvocationOrder())
@@ -39,8 +39,8 @@ namespace TestCustomizedFunction
 	class CustomizedFunctionWrapper
 	{
 		private Dictionary<string, object> tempVariables = new Dictionary<string, object>();
-		private Dictionary<string, Func<Dictionary<string, object>, object>> functions =
-			new Dictionary<string, Func<Dictionary<string, object>, object>>();
+		private Dictionary<string, Func<object>> functions =
+			new Dictionary<string, Func<object>>();
 
 		/// <summary>
 		///		Add one local variable to the wrapped function
@@ -72,7 +72,7 @@ namespace TestCustomizedFunction
 		///		</para>
 		/// </param>
 		/// <param name="method"></param>
-		public void AddFunction(string name, Func<Dictionary<string, object>, object> method)
+		public void AddFunction(string name, Func<object> method)
 			=> functions.Add(name, method);
 
 		/// <summary>
@@ -86,10 +86,10 @@ namespace TestCustomizedFunction
 		{
 			KeyValuePair<string, object> tempResult = new KeyValuePair<string, object>();
 
-			foreach (KeyValuePair<string, Func<Dictionary<string, object>, object>> function in functions)
+			foreach (KeyValuePair<string, Func<object>> function in functions)
 			{
 				tempResult = new KeyValuePair<string, object>
-					(function.Key, function.Value.Invoke(tempVariables));
+					(function.Key, function.Value.Invoke());
 
 				if (tempResult.Value != null)
 				{
@@ -125,7 +125,7 @@ namespace TestCustomizedFunction
 		/// <returns>A list of the names of functions ordered by their invocation</returns>
 		public IEnumerable<string> ShowInvocationOrder()
 		{
-			foreach (KeyValuePair<string, Func<Dictionary<string, object>, object>> function in functions)
+			foreach (KeyValuePair<string, Func<object>> function in functions)
 				yield return function.Key;
 		}
 	}

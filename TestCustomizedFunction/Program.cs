@@ -32,6 +32,26 @@ namespace TestCustomizedFunction
 			}
 			Console.WriteLine((int)test.Invoke());
 
+			Console.WriteLine("Test 2");
+
+			test = new CustomizedFunctionWrapper();
+			test.AddVariable("n1", 1);
+			test.AddVariable("n2", 3);
+			test.AddFunction
+			(
+				"Add", 
+				new Action(() => 
+				{
+					test.AddVariable
+					(
+						"ret", 
+						(int)test["n1"] + (int)test["n2"]
+					);
+				})
+			);
+			test.Invoke();
+			Console.WriteLine((int)test["ret"]);
+
 			Console.ReadKey();
 		}
 	}
@@ -40,10 +60,14 @@ namespace TestCustomizedFunction
 	{
 		private Dictionary<string, object> tempVariables =
 			new Dictionary<string, object>();
+
+		[Obsolete("It will be removed later")]
 		private Dictionary<string, Func<object>> functions =
 			new Dictionary<string, Func<object>>();
+		[Obsolete("It will be removed later")]
 		private Dictionary<string, CustomizedFunctionWrapper> funcBlocks =
 			new Dictionary<string, CustomizedFunctionWrapper>();
+
 		private Dictionary<string, object> executionSequence = 
 			new Dictionary<string, object>();
 
@@ -89,6 +113,7 @@ namespace TestCustomizedFunction
 		///		</para>
 		/// </param>
 		/// <param name="method"></param>
+		[Obsolete("This overlaod will be removed later")]
 		public void AddFunction(string name, Func<object> method)
 		{
 			functions.Add(name, method);
@@ -100,10 +125,31 @@ namespace TestCustomizedFunction
 		/// </summary>
 		/// <param name="name"></param>
 		/// <param name="funcBlock"></param>
+		[Obsolete("This overlaod will be removed later")]
 		public void AddFunction(string name, CustomizedFunctionWrapper funcBlock)
 		{
 			funcBlocks.Add(name, funcBlock);
 			executionSequence.Add(name, funcBlocks[name]);
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="name"></param>
+		/// <param name="function"></param>
+		public void AddFunction(string name, object function)
+		{
+			if (function is Func<object> ||
+				function is Action ||
+				function is CustomizedFunctionWrapper)
+			{
+				executionSequence.Add(name, function);
+			}
+			else
+			{
+				throw new ArgumentException("function type can only be \"Action\", " +
+					"\"Func<object>\" or \"CustomizedFunctionWrapper\"");
+			}
 		}
 
 		/// <summary>
@@ -117,7 +163,7 @@ namespace TestCustomizedFunction
 		{
 			KeyValuePair<string, object> tempResult = new KeyValuePair<string, object>();
 
-			foreach (KeyValuePair<string, Func<object>> function in functions)
+			foreach (KeyValuePair<string, object> function in executionSequence)
 			{
 				//tempResult = new KeyValuePair<string, object>
 				//	(function.Key, function.Value.Invoke());

@@ -11,7 +11,7 @@ namespace TestCustomizedFunction
 	{
 		static void Main(string[] args)
 		{
-			var test = new CustomizedFunctionWrapper();
+			var test = new CustomFunctionBuilder();
 			test.AddVariable("num1",1);
 			test.AddVariable("num2",2);
 			test.AddFunction
@@ -34,20 +34,20 @@ namespace TestCustomizedFunction
 
 			Console.WriteLine("Test 2");
 
-			test = new CustomizedFunctionWrapper();
+			test = new CustomFunctionBuilder();
 			test.AddVariable("n1", 1);
 			test.AddVariable("n2", 3);
 			test.AddFunction
 			(
 				"Add", 
-				new Action(() => 
+				() => 
 				{
 					test.AddVariable
 					(
 						"ret", 
 						(int)test["n1"] + (int)test["n2"]
 					);
-				})
+				}
 			);
 			test.Invoke();
 			Console.WriteLine((int)test["ret"]);
@@ -56,7 +56,7 @@ namespace TestCustomizedFunction
 		}
 	}
 
-	class CustomizedFunctionWrapper
+	class CustomFunctionBuilder
 	{
 		private Dictionary<string, object> tempVariables =
 			new Dictionary<string, object>();
@@ -71,8 +71,8 @@ namespace TestCustomizedFunction
 		private Dictionary<string, object> executionSequence = 
 			new Dictionary<string, object>();
 
-		public CustomizedFunctionWrapper() { }
-		public CustomizedFunctionWrapper(
+		public CustomFunctionBuilder() { }
+		public CustomFunctionBuilder(
 			Dictionary<string, object> parameters, 
 			KeyValuePair<string, Func<object>> function = new KeyValuePair<string, Func<object>>())
 		{
@@ -82,7 +82,7 @@ namespace TestCustomizedFunction
 				AddFunction(function.Key, function.Value);
 			}
 		}
-		public CustomizedFunctionWrapper(
+		public CustomFunctionBuilder(
 			Dictionary<string, object> parameters,
 			KeyValuePair<string, Action> function = new KeyValuePair<string, Action>())
 		{
@@ -92,10 +92,10 @@ namespace TestCustomizedFunction
 				AddFunction(function.Key, function.Value);
 			}
 		}
-		public CustomizedFunctionWrapper(
+		public CustomFunctionBuilder(
 			Dictionary<string, object> parameters,
-			KeyValuePair<string, CustomizedFunctionWrapper> function 
-			= new KeyValuePair<string, CustomizedFunctionWrapper>())
+			KeyValuePair<string, CustomFunctionBuilder> function 
+			= new KeyValuePair<string, CustomFunctionBuilder>())
 		{
 			AddVariable(parameters);
 			if (function.Value != null)
@@ -171,7 +171,7 @@ namespace TestCustomizedFunction
 			=> executionSequence.Add(name, function);
 		public void AddFunction(string name, Action function)
 			=> executionSequence.Add(name, function);
-		public void AddFunction(string name, CustomizedFunctionWrapper function)
+		public void AddFunction(string name, CustomFunctionBuilder function)
 			=> executionSequence.Add(name, function);
 
 		/// <summary>
@@ -187,9 +187,6 @@ namespace TestCustomizedFunction
 
 			foreach (KeyValuePair<string, object> function in executionSequence)
 			{
-				//tempResult = new KeyValuePair<string, object>
-				//	(function.Key, function.Value.Invoke());
-
 				tempResult = new KeyValuePair<string, object>
 				(
 					function.Key, 
@@ -220,8 +217,10 @@ namespace TestCustomizedFunction
 		/// <returns>The requested variable</returns>
 		public T GetTempVariable<T>(string name) => (T)tempVariables[name];
 
+		public void SetTempVariable<T>(string name, T variable) => tempVariables[name] = variable;
+
 		/// <summary>
-		///		The Indexer. This version is easier to use. 
+		///		The Indexer. This version is a shortcut of <c>GetTempVariable<c/>. 
 		/// </summary>
 		/// <param name="name">The name of the <c>tempVariable</c>, which is used to find it</param>
 		/// <returns>The requested variable</returns>

@@ -112,6 +112,8 @@ namespace TestCustomizedFunction
 		/// <param name="data"> The object data of the parameter</param>
 		public void AddVariable(string name, object data)
 			=> tempVariables.Add(name, data);
+		public void AddVariable<T>(string name, T data)
+			=> 
 
 		/// <summary>
 		///		Add multiple variables at once to the wrapped function
@@ -239,5 +241,41 @@ namespace TestCustomizedFunction
 			foreach (KeyValuePair<string, object> function in executionSequence)
 				yield return function.Key;
 		}
+
+		#region Experimantal
+		private class TypedDictionary
+		{
+			private List<object> variableList = new List<object>();
+
+			public void Add<T>(string name, T data)
+			{
+				variableList.Add(new TypedKeyValuePair<T>(name, data));
+			}
+
+			public T GetVariable<T>(string name)
+			{
+				return (T)(from typedKeyValuePair in variableList
+						   where (string)typedKeyValuePair
+						   .GetType()
+						   .GetProperty("Name")
+						   .GetValue(typedKeyValuePair) == name
+						   select typedKeyValuePair).Single();
+			}
+
+			private class TypedKeyValuePair<T>
+			{
+				public string Name { get; set; }
+				public T Data { get; set; }
+				public Type VariableType { get; set; }
+
+				public TypedKeyValuePair(string name, T data)
+				{
+					Name = name;
+					Data = data;
+					VariableType = typeof(T);
+				}
+			}
+		}
+		#endregion
 	}
 }

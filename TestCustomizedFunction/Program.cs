@@ -58,15 +58,11 @@ namespace TestCustomizedFunction
 
 	class CustomFunctionBuilder
 	{
+		[Experimental]
+		private TypedDictionary typedTempVariables = new TypedDictionary();
+
 		private Dictionary<string, object> tempVariables =
 			new Dictionary<string, object>();
-
-		//[Obsolete("It will be removed later")]
-		//private Dictionary<string, Func<object>> functions =
-		//	new Dictionary<string, Func<object>>();
-		//[Obsolete("It will be removed later")]
-		//private Dictionary<string, CustomizedFunctionWrapper> funcBlocks =
-		//	new Dictionary<string, CustomizedFunctionWrapper>();
 
 		private Dictionary<string, object> executionSequence = 
 			new Dictionary<string, object>();
@@ -113,7 +109,7 @@ namespace TestCustomizedFunction
 		public void AddVariable(string name, object data)
 			=> tempVariables.Add(name, data);
 		public void AddVariable<T>(string name, T data)
-			=> 
+			=> typedTempVariables.Add(name, data); 
 
 		/// <summary>
 		///		Add multiple variables at once to the wrapped function
@@ -123,38 +119,6 @@ namespace TestCustomizedFunction
 		///	</param>
 		public void AddVariable(Dictionary<string, object> parameters)
 			=> tempVariables = tempVariables.Concat(parameters) as Dictionary<string, object>;
-
-		/// <summary>
-		///		Add one subprocedure or function to the wrapped function
-		/// </summary>
-		/// <param name="name">
-		///		<para>The name of the function</para>
-		///		<para>
-		///			NOTE: If the function has a return value, 
-		///			the return value will be stored inside the 
-		///			<code>CustomizedFunctionWrapper</code> typed instance, 
-		///			and its name is the same as the function. 
-		///		</para>
-		/// </param>
-		/// <param name="method"></param>
-		/*[Obsolete("This overlaod will be removed later")]
-		public void AddFunction(string name, Func<object> method)
-		{
-			functions.Add(name, method);
-			executionSequence.Add(name, functions[name]);
-		}*/
-
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="funcBlock"></param>
-		/*[Obsolete("This overlaod will be removed later")]
-		public void AddFunction(string name, CustomizedFunctionWrapper funcBlock)
-		{
-			funcBlocks.Add(name, funcBlock);
-			executionSequence.Add(name, funcBlocks[name]);
-		}*/
 
 		/// <summary>
 		///		Add one subprocedure or function to the wrapped function
@@ -242,7 +206,7 @@ namespace TestCustomizedFunction
 				yield return function.Key;
 		}
 
-		#region Experimantal
+		[Experimental]
 		private class TypedDictionary
 		{
 			private List<object> variableList = new List<object>();
@@ -254,12 +218,21 @@ namespace TestCustomizedFunction
 
 			public T GetVariable<T>(string name)
 			{
-				return (T)(from typedKeyValuePair in variableList
-						   where (string)typedKeyValuePair
-						   .GetType()
-						   .GetProperty("Name")
-						   .GetValue(typedKeyValuePair) == name
-						   select typedKeyValuePair).Single();
+				return 
+				(
+					(TypedKeyValuePair<T>)variableList
+						.Where(v => ((TypedKeyValuePair<T>)v).Name == name)
+						.Single()
+				).Data;
+			}
+
+			public void SetVariable<T>(string name, T data)
+			{
+				(
+					(TypedKeyValuePair<T>)variableList
+						.Where(v => ((TypedKeyValuePair<T>)v).Name == name)
+						.Single()
+				).Data = data;
 			}
 
 			private class TypedKeyValuePair<T>
@@ -276,6 +249,11 @@ namespace TestCustomizedFunction
 				}
 			}
 		}
-		#endregion
+	}
+
+	[AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
+	public class ExperimentalAttribute : Attribute
+	{
+		public string Comment { get; set; }
 	}
 }

@@ -59,17 +59,14 @@ namespace TestCustomizedFunction
 	class CustomFunctionBuilder
 	{
 		[Experimental]
-		private TypedDictionary typedTempVariables = new TypedDictionary();
-
-		private Dictionary<string, object> tempVariables =
-			new Dictionary<string, object>();
+		private TypedDictionary tempVariables = new TypedDictionary();
 
 		private Dictionary<string, object> executionSequence = 
 			new Dictionary<string, object>();
 
 		public CustomFunctionBuilder() { }
 		public CustomFunctionBuilder(
-			Dictionary<string, object> parameters, 
+			TypedDictionary parameters, 
 			KeyValuePair<string, Func<object>> function = new KeyValuePair<string, Func<object>>())
 		{
 			AddVariable(parameters);
@@ -79,7 +76,7 @@ namespace TestCustomizedFunction
 			}
 		}
 		public CustomFunctionBuilder(
-			Dictionary<string, object> parameters,
+			TypedDictionary parameters,
 			KeyValuePair<string, Action> function = new KeyValuePair<string, Action>())
 		{
 			AddVariable(parameters);
@@ -89,7 +86,7 @@ namespace TestCustomizedFunction
 			}
 		}
 		public CustomFunctionBuilder(
-			Dictionary<string, object> parameters,
+			TypedDictionary parameters,
 			KeyValuePair<string, CustomFunctionBuilder> function 
 			= new KeyValuePair<string, CustomFunctionBuilder>())
 		{
@@ -100,16 +97,14 @@ namespace TestCustomizedFunction
 			}
 		}
 
-
 		/// <summary>
 		///		Add one local variable to the wrapped function
 		/// </summary>
 		/// <param name="name"> Name of the parameter</param>
 		/// <param name="data"> The object data of the parameter</param>
-		public void AddVariable(string name, object data)
-			=> tempVariables.Add(name, data);
+		/// <typeparam name="T"></typeparam>
 		public void AddVariable<T>(string name, T data)
-			=> typedTempVariables.Add(name, data); 
+			=> tempVariables.Add(name, data);
 
 		/// <summary>
 		///		Add multiple variables at once to the wrapped function
@@ -117,8 +112,8 @@ namespace TestCustomizedFunction
 		/// <param name="parameters">
 		///		The variable list, containing names and data of each variable respectively
 		///	</param>
-		public void AddVariable(Dictionary<string, object> parameters)
-			=> tempVariables = tempVariables.Concat(parameters) as Dictionary<string, object>;
+		public void AddVariable(TypedDictionary parameters)
+			=> tempVariables.Concat(parameters);
 
 		/// <summary>
 		///		Add one subprocedure or function to the wrapped function
@@ -168,9 +163,7 @@ namespace TestCustomizedFunction
 				);
 
 				if (tempResult.Value != null)
-				{
 					tempVariables.Add(tempResult.Key, tempResult.Value);
-				}
 			}
 			return tempResult.Value;
 		}
@@ -181,9 +174,17 @@ namespace TestCustomizedFunction
 		/// <typeparam name="T">The type of the return value</typeparam>
 		/// <param name="name">The name of the <c>tempVariable</c>, which is used to find it</param>
 		/// <returns>The requested variable</returns>
-		public T GetTempVariable<T>(string name) => (T)tempVariables[name];
+		public T GetTempVariable<T>(string name) 
+			=> tempVariables.GetVariable<T>(name);
 
-		public void SetTempVariable<T>(string name, T variable) => tempVariables[name] = variable;
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="name"></param>
+		/// <param name="variable"></param>
+		public void SetTempVariable<T>(string name, T variable) 
+			=> tempVariables.SetVariable<T>(name, variable);
 
 		/// <summary>
 		///		The Indexer. This version is a shortcut of <c>GetTempVariable<c/>. 
@@ -192,8 +193,8 @@ namespace TestCustomizedFunction
 		/// <returns>The requested variable</returns>
 		public object this[string name]
 		{
-			get => tempVariables[name];
-			set => tempVariables[name] = value;
+			get => tempVariables.GetVariable<object>(name);
+			set => tempVariables.SetVariable<object>(name, value);
 		}
 
 		/// <summary>
@@ -207,45 +208,43 @@ namespace TestCustomizedFunction
 		}
 
 		[Experimental]
-		private class TypedDictionary
+		public class TypedDictionary
 		{
-			private List<object> variableList = new List<object>();
+			private List<object> typedKeyValuePairList = new List<object>();
 
 			public void Add<T>(string name, T data)
-			{
-				variableList.Add(new TypedKeyValuePair<T>(name, data));
-			}
+				=> typedKeyValuePairList.Add(new TypedKeyValuePair<T>(name, data));
 
 			public T GetVariable<T>(string name)
-			{
-				return 
-				(
-					(TypedKeyValuePair<T>)variableList
+				=>  (
+					(TypedKeyValuePair<T>)typedKeyValuePairList
 						.Where(v => ((TypedKeyValuePair<T>)v).Name == name)
 						.Single()
-				).Data;
-			}
+				).ObjectData;
 
 			public void SetVariable<T>(string name, T data)
-			{
-				(
-					(TypedKeyValuePair<T>)variableList
+				=>  (
+					(TypedKeyValuePair<T>)typedKeyValuePairList
 						.Where(v => ((TypedKeyValuePair<T>)v).Name == name)
 						.Single()
-				).Data = data;
-			}
+				).ObjectData = data;
+
+			public void Concat(TypedDictionary another)
+				=> typedKeyValuePairList.Concat(another.typedKeyValuePairList);
+
+			private int Count => typedKeyValuePairList.Count;
 
 			private class TypedKeyValuePair<T>
 			{
 				public string Name { get; set; }
-				public T Data { get; set; }
-				public Type VariableType { get; set; }
+				public T ObjectData { get; set; }
+				public Type objectType { get; set; }
 
 				public TypedKeyValuePair(string name, T data)
 				{
 					Name = name;
-					Data = data;
-					VariableType = typeof(T);
+					ObjectData = data;
+					objectType = typeof(T);
 				}
 			}
 		}
